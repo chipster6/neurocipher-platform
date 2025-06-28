@@ -313,9 +313,9 @@ pytest
 
 ### Subscription Plans
 - **Free**: 1 scan/month + basic reporting
-- **Professional ($99/month)**: 10 scans + automated remediation
-- **Business ($199/month)**: Unlimited scans + continuous monitoring
-- **Enterprise ($499/month)**: On-premises hardware + white-label
+- **Starter ($50/month)**: 3 scans + automated remediation
+- **Professional ($150/month)**: 10 scans + compliance certificates
+- **Business ($200/month)**: Unlimited scans + continuous monitoring
 
 ### Refund & Cancellation
 - **30-Day Money-Back Guarantee** on all paid plans

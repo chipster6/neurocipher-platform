@@ -15,6 +15,7 @@ from .engines.threat_intelligence import ThreatIntelligenceManager
 from .engines.threat_correlation_engine import ThreatCorrelationEngine
 from .engines.behavioral_pattern_analyzer import BehavioralPatternAnalyzer, SecurityEvent
 from .engines.gpu_llm_integration import GPULLMIntegration, SecurityContext
+from .engines.zen_consensus_engine import ZenConsensusEngine, ThreatConsensusResult, ConsensusStance
 from .engines.compliance_matrix_engine import ComplianceMatrixEngine
 from .advanced_analytics import AdvancedAnalytics
 from .performance_optimizer import PipelineOptimizer, get_performance_optimizer, cached, monitored
@@ -47,6 +48,7 @@ class AIAnalyticsManager:
         self.correlation_engine = None
         self.behavioral_analyzer = None
         self.llm_integration = None
+        self.zen_consensus_engine = None
         self.compliance_engine = None
         self.advanced_analytics = None
         self.performance_optimizer = None
@@ -78,6 +80,10 @@ class AIAnalyticsManager:
             # Initialize GPU-accelerated LLM integration with vector store
             self.llm_integration = GPULLMIntegration(self.config)
             await self.llm_integration.initialize(vector_store=self.vector_store)
+            
+            # Initialize Zen Consensus Engine (replaces matrix-based consensus)
+            self.zen_consensus_engine = ZenConsensusEngine(self.config)
+            await self.zen_consensus_engine.initialize()
             
             # Initialize compliance matrix engine
             self.compliance_engine = ComplianceMatrixEngine(self.config)
@@ -502,8 +508,8 @@ class AIAnalyticsManager:
             if security_events:
                 behavioral_patterns = await self._analyze_behavioral_patterns(security_events)
             
-            # Step 5: Dual LLM Analysis
-            llm_analysis = await self._perform_dual_llm_analysis(
+            # Step 5: Zen Consensus Analysis (replaces dual LLM matrix)
+            consensus_analysis = await self._perform_zen_consensus_analysis(
                 cloud_results, threat_data, correlations, behavioral_patterns
             )
             
@@ -526,7 +532,7 @@ class AIAnalyticsManager:
                     "threat_data": threat_data,
                     "correlations": correlations,
                     "behavioral_patterns": behavioral_patterns,
-                    "llm_analysis": llm_analysis,
+                    "consensus_analysis": consensus_analysis,
                     "compliance_reports": compliance_reports,
                     "advanced_analytics": advanced_analytics
                 }
@@ -535,19 +541,19 @@ class AIAnalyticsManager:
             # Step 9: Generate Enhanced Risk Assessment
             enhanced_risk_assessment = await self._generate_enhanced_risk_assessment(
                 cloud_results, threat_data, correlations, behavioral_patterns, 
-                llm_analysis, compliance_reports, advanced_analytics
+                consensus_analysis, compliance_reports, advanced_analytics
             )
             
             # Step 10: Generate AI-Powered Recommendations
             ai_recommendations = await self._generate_ai_powered_recommendations(
                 cloud_results, threat_data, correlations, behavioral_patterns,
-                llm_analysis, compliance_reports, enhanced_risk_assessment
+                consensus_analysis, compliance_reports, enhanced_risk_assessment
             )
             
             # Calculate Enhanced Overall Score
             enhanced_score = self._calculate_enhanced_overall_score(
                 cloud_results, threat_data, enhanced_risk_assessment, 
-                compliance_reports, llm_analysis
+                compliance_reports, consensus_analysis
             )
             
             # Create Enhanced Result
@@ -563,7 +569,7 @@ class AIAnalyticsManager:
             
             # Add enhanced fields
             enhanced_result.behavioral_patterns = behavioral_patterns
-            enhanced_result.llm_analysis = llm_analysis
+            enhanced_result.consensus_analysis = consensus_analysis
             enhanced_result.compliance_reports = compliance_reports
             enhanced_result.advanced_analytics = advanced_analytics
             enhanced_result.analysis_version = "Phase3_Enhanced"
@@ -656,44 +662,207 @@ class AIAnalyticsManager:
             logger.error(f"Behavioral pattern analysis failed: {e}")
             return []
     
-    async def _perform_dual_llm_analysis(
+    async def _perform_zen_consensus_analysis(
         self,
         cloud_results: Dict[str, Any],
         threat_data: Dict[str, Any],
         correlations: List[Dict[str, Any]],
         behavioral_patterns: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
-        """Perform dual LLM analysis using GPU acceleration"""
+        """Perform zen-mcp consensus analysis (replaces dual LLM matrix approach)"""
         try:
-            # Create security context for LLM analysis
-            security_context = SecurityContext(
-                event_data=cloud_results,
-                threat_intelligence=threat_data,
-                compliance_context={},  # Will be populated if compliance assessment is done
-                historical_patterns=behavioral_patterns,
-                organization_context={
-                    "analysis_timestamp": datetime.now().isoformat(),
-                    "scan_scope": list(cloud_results.keys()),
-                    "total_risks": sum(len(results.get("risks", [])) for results in cloud_results.values())
-                }
-            )
+            logger.info("Starting zen consensus analysis - models will debate findings")
             
-            # Perform dual LLM analysis
-            analysis_types = ["threat_analysis", "code_analysis", "compliance_analysis", "risk_assessment"]
-            llm_results = await self.llm_integration.perform_dual_llm_analysis(
-                security_context, analysis_types
+            consensus_results = []
+            overall_consensus_metrics = {
+                "total_threats_analyzed": 0,
+                "consensus_agreements": 0,
+                "high_confidence_decisions": 0,
+                "escalation_required": 0
+            }
+            
+            # Analyze each risk with zen consensus
+            for provider, provider_results in cloud_results.items():
+                for risk in provider_results.get("risks", []):
+                    # Prepare security data for consensus analysis
+                    security_data = {
+                        "risk": risk,
+                        "provider": provider,
+                        "threat_intelligence": threat_data,
+                        "correlations": [c for c in correlations if self._risk_in_correlation(risk, c)],
+                        "behavioral_context": [p for p in behavioral_patterns if self._pattern_relates_to_risk(risk, p)]
+                    }
+                    
+                    # Determine consensus stance based on risk severity
+                    stance = ConsensusStance.NEUTRAL
+                    if risk.get("severity") == "Critical":
+                        stance = ConsensusStance.FOR  # Bias toward detecting critical threats
+                    elif risk.get("severity") == "Low":
+                        stance = ConsensusStance.AGAINST  # Reduce false positives for low severity
+                    
+                    # Perform consensus analysis
+                    consensus_result = await self.zen_consensus_engine.analyze_threat_consensus(
+                        security_data,
+                        analysis_type="comprehensive",
+                        stance_bias=stance
+                    )
+                    
+                    # Store consensus result with context
+                    consensus_data = {
+                        "risk_id": risk.get("id", f"risk_{hash(risk.get('title', ''))}"),
+                        "provider": provider,
+                        "original_risk": risk,
+                        "consensus_result": self._serialize_consensus_result(consensus_result),
+                        "models_agreement": consensus_result.consensus_strength,
+                        "final_decision": consensus_result.threat_detected,
+                        "confidence_score": consensus_result.confidence_score,
+                        "conversation_summary": consensus_result.consensus_reasoning
+                    }
+                    
+                    consensus_results.append(consensus_data)
+                    
+                    # Update metrics
+                    overall_consensus_metrics["total_threats_analyzed"] += 1
+                    if consensus_result.consensus_strength >= 0.8:
+                        overall_consensus_metrics["consensus_agreements"] += 1
+                    if consensus_result.confidence_score >= 0.85:
+                        overall_consensus_metrics["high_confidence_decisions"] += 1
+                    if consensus_result.escalation_required:
+                        overall_consensus_metrics["escalation_required"] += 1
+            
+            # Perform high-level consensus on overall security posture
+            overall_security_analysis = await self._perform_overall_security_consensus(
+                cloud_results, threat_data, consensus_results
             )
             
             return {
-                "llm_analysis_results": llm_results,
-                "analysis_summary": self._summarize_llm_results(llm_results),
-                "confidence_scores": self._extract_llm_confidence_scores(llm_results),
-                "key_findings": self._extract_llm_key_findings(llm_results)
+                "consensus_results": consensus_results,
+                "overall_metrics": overall_consensus_metrics,
+                "overall_security_consensus": overall_security_analysis,
+                "analysis_summary": self._summarize_consensus_results(consensus_results),
+                "key_insights": self._extract_consensus_insights(consensus_results),
+                "model_agreement_rate": overall_consensus_metrics["consensus_agreements"] / max(1, overall_consensus_metrics["total_threats_analyzed"])
             }
             
         except Exception as e:
-            logger.error(f"Dual LLM analysis failed: {e}")
-            return {"error": str(e), "analysis_results": {}}
+            logger.error(f"Zen consensus analysis failed: {e}")
+            return {"error": str(e), "consensus_results": []}
+    
+    async def _perform_overall_security_consensus(
+        self,
+        cloud_results: Dict[str, Any],
+        threat_data: Dict[str, Any],
+        consensus_results: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Perform high-level consensus on overall security posture"""
+        try:
+            # Aggregate all individual consensus results
+            overall_security_data = {
+                "total_risks": sum(len(results.get("risks", [])) for results in cloud_results.values()),
+                "consensus_results": consensus_results,
+                "threat_landscape": threat_data,
+                "critical_threats": len([r for r in consensus_results if r.get("original_risk", {}).get("severity") == "Critical"]),
+                "high_confidence_threats": len([r for r in consensus_results if r.get("confidence_score", 0) >= 0.85])
+            }
+            
+            # Use zen consensus for overall security posture assessment
+            overall_consensus = await self.zen_consensus_engine.analyze_threat_consensus(
+                overall_security_data,
+                analysis_type="comprehensive",
+                stance_bias=ConsensusStance.NEUTRAL
+            )
+            
+            return {
+                "overall_threat_detected": overall_consensus.threat_detected,
+                "security_posture_confidence": overall_consensus.confidence_score,
+                "consensus_reasoning": overall_consensus.consensus_reasoning,
+                "recommended_actions": overall_consensus.recommended_actions,
+                "escalation_required": overall_consensus.escalation_required
+            }
+            
+        except Exception as e:
+            logger.error(f"Overall security consensus failed: {e}")
+            return {"error": str(e)}
+    
+    def _risk_in_correlation(self, risk: Dict[str, Any], correlation: Dict[str, Any]) -> bool:
+        """Check if risk is involved in correlation"""
+        risk_title = risk.get("title", "").lower()
+        correlation_text = str(correlation).lower()
+        return risk_title in correlation_text
+    
+    def _pattern_relates_to_risk(self, risk: Dict[str, Any], pattern: Dict[str, Any]) -> bool:
+        """Check if behavioral pattern relates to risk"""
+        risk_category = risk.get("category", "").lower()
+        pattern_type = pattern.get("pattern_type", "").lower()
+        return any(keyword in pattern_type for keyword in risk_category.split())
+    
+    def _serialize_consensus_result(self, consensus_result: ThreatConsensusResult) -> Dict[str, Any]:
+        """Serialize consensus result for storage"""
+        return {
+            "threat_detected": consensus_result.threat_detected,
+            "confidence_score": consensus_result.confidence_score,
+            "consensus_strength": consensus_result.consensus_strength,
+            "primary_analysis": consensus_result.primary_analysis,
+            "secondary_analysis": consensus_result.secondary_analysis,
+            "consensus_reasoning": consensus_result.consensus_reasoning,
+            "recommended_actions": consensus_result.recommended_actions,
+            "false_positive_likelihood": consensus_result.false_positive_likelihood,
+            "escalation_required": consensus_result.escalation_required
+        }
+    
+    def _summarize_consensus_results(self, consensus_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Summarize consensus analysis results"""
+        if not consensus_results:
+            return {"total_analyses": 0}
+        
+        total_threats_detected = sum(1 for r in consensus_results if r.get("final_decision", False))
+        avg_confidence = sum(r.get("confidence_score", 0) for r in consensus_results) / len(consensus_results)
+        avg_agreement = sum(r.get("models_agreement", 0) for r in consensus_results) / len(consensus_results)
+        
+        return {
+            "total_analyses": len(consensus_results),
+            "threats_detected": total_threats_detected,
+            "threat_detection_rate": total_threats_detected / len(consensus_results),
+            "average_confidence": round(avg_confidence, 3),
+            "average_model_agreement": round(avg_agreement, 3),
+            "high_confidence_analyses": len([r for r in consensus_results if r.get("confidence_score", 0) >= 0.85]),
+            "consensus_quality": "High" if avg_agreement >= 0.8 else "Medium" if avg_agreement >= 0.6 else "Low"
+        }
+    
+    def _extract_consensus_insights(self, consensus_results: List[Dict[str, Any]]) -> List[str]:
+        """Extract key insights from consensus analysis"""
+        insights = []
+        
+        if not consensus_results:
+            return ["No consensus results available"]
+        
+        # Analyze agreement patterns
+        high_agreement = [r for r in consensus_results if r.get("models_agreement", 0) >= 0.9]
+        if high_agreement:
+            insights.append(f"Models show strong agreement on {len(high_agreement)} threats - high confidence findings")
+        
+        # Analyze disagreement patterns
+        low_agreement = [r for r in consensus_results if r.get("models_agreement", 0) < 0.6]
+        if low_agreement:
+            insights.append(f"Models disagree on {len(low_agreement)} threats - manual review recommended")
+        
+        # Analyze escalation patterns
+        escalations = [r for r in consensus_results if r.get("consensus_result", {}).get("escalation_required", False)]
+        if escalations:
+            insights.append(f"{len(escalations)} threats require immediate escalation to security team")
+        
+        # Provider-specific insights
+        provider_threats = {}
+        for result in consensus_results:
+            provider = result.get("provider", "unknown")
+            if result.get("final_decision", False):
+                provider_threats[provider] = provider_threats.get(provider, 0) + 1
+        
+        if provider_threats:
+            max_provider = max(provider_threats, key=provider_threats.get)
+            insights.append(f"{max_provider} shows highest threat activity with {provider_threats[max_provider]} confirmed threats")
+        
+        return insights[:5]  # Top 5 insights
     
     async def _perform_compliance_assessment(
         self,
@@ -809,7 +978,7 @@ class AIAnalyticsManager:
         threat_data: Dict[str, Any],
         correlations: List[Dict[str, Any]],
         behavioral_patterns: List[Dict[str, Any]],
-        llm_analysis: Dict[str, Any],
+        consensus_analysis: Dict[str, Any],
         compliance_reports: Dict[str, Any],
         advanced_analytics: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -824,15 +993,13 @@ class AIAnalyticsManager:
                 high_risk_patterns = [p for p in behavioral_patterns if p.get("risk_level") in ["High", "Critical"]]
                 behavioral_risk_factor = min(25.0, len(high_risk_patterns) * 5.0)
             
-            # LLM analysis risk factor
-            llm_risk_factor = 0.0
-            llm_results = llm_analysis.get("llm_analysis_results", {})
-            if llm_results:
-                # Average confidence across all LLM analyses
-                confidences = [result.confidence for result in llm_results.values() if hasattr(result, 'confidence')]
-                if confidences:
-                    avg_confidence = sum(confidences) / len(confidences)
-                    llm_risk_factor = avg_confidence * 15.0  # Up to 15 points from LLM analysis
+            # Consensus analysis risk factor
+            consensus_risk_factor = 0.0
+            consensus_results = consensus_analysis.get("consensus_results", [])
+            if consensus_results:
+                # High confidence consensus threats increase risk
+                high_confidence_threats = [r for r in consensus_results if r.get("confidence_score", 0) >= 0.85 and r.get("final_decision", False)]
+                consensus_risk_factor = min(20.0, len(high_confidence_threats) * 3.0)  # Up to 20 points from consensus
             
             # Compliance risk factor
             compliance_risk_factor = 0.0
@@ -851,7 +1018,7 @@ class AIAnalyticsManager:
             
             # Calculate enhanced final risk score
             base_score = base_assessment.get("final_risk_score", 0)
-            enhanced_score = min(100.0, base_score + behavioral_risk_factor + llm_risk_factor + 
+            enhanced_score = min(100.0, base_score + behavioral_risk_factor + consensus_risk_factor + 
                                compliance_risk_factor + analytics_risk_factor)
             
             # Enhanced risk assessment
@@ -861,7 +1028,7 @@ class AIAnalyticsManager:
                 "risk_factors": {
                     "base_risk": base_score,
                     "behavioral_risk": behavioral_risk_factor,
-                    "llm_analysis_risk": llm_risk_factor,
+                    "consensus_analysis_risk": consensus_risk_factor,
                     "compliance_risk": compliance_risk_factor,
                     "analytics_risk": analytics_risk_factor
                 },
@@ -871,13 +1038,13 @@ class AIAnalyticsManager:
                         "patterns_detected": len(behavioral_patterns),
                         "high_risk_patterns": len([p for p in behavioral_patterns if p.get("risk_level") in ["High", "Critical"]])
                     },
-                    "ai_analysis": llm_analysis.get("analysis_summary", {}),
+                    "consensus_analysis": consensus_analysis.get("analysis_summary", {}),
                     "compliance_status": self._summarize_compliance_status(compliance_reports),
                     "advanced_analytics_insights": advanced_analytics.get("risk_heatmap", {}).get("insights", [])
                 },
                 "overall_risk_level": self._get_enhanced_risk_level(enhanced_score),
                 "confidence_level": self._calculate_assessment_confidence(
-                    behavioral_patterns, llm_analysis, compliance_reports
+                    behavioral_patterns, consensus_analysis, compliance_reports
                 )
             }
             
@@ -893,7 +1060,7 @@ class AIAnalyticsManager:
         threat_data: Dict[str, Any],
         correlations: List[Dict[str, Any]],
         behavioral_patterns: List[Dict[str, Any]],
-        llm_analysis: Dict[str, Any],
+        consensus_analysis: Dict[str, Any],
         compliance_reports: Dict[str, Any],
         risk_assessment: Dict[str, Any]
     ) -> List[str]:
@@ -912,11 +1079,12 @@ class AIAnalyticsManager:
                 behavioral_recommendations = self._generate_behavioral_recommendations(behavioral_patterns)
                 recommendations.extend(behavioral_recommendations)
             
-            # LLM analysis recommendations
-            llm_results = llm_analysis.get("llm_analysis_results", {})
-            for model_result in llm_results.values():
-                if hasattr(model_result, 'recommendations'):
-                    recommendations.extend(model_result.recommendations)
+            # Consensus analysis recommendations
+            consensus_results = consensus_analysis.get("consensus_results", [])
+            for consensus_result in consensus_results:
+                consensus_data = consensus_result.get("consensus_result", {})
+                recommended_actions = consensus_data.get("recommended_actions", [])
+                recommendations.extend(recommended_actions)
             
             # Compliance recommendations
             if compliance_reports:
@@ -948,7 +1116,7 @@ class AIAnalyticsManager:
         threat_data: Dict[str, Any],
         risk_assessment: Dict[str, Any],
         compliance_reports: Dict[str, Any],
-        llm_analysis: Dict[str, Any]
+        consensus_analysis: Dict[str, Any]
     ) -> int:
         """Calculate enhanced overall score incorporating all analysis components"""
         try:
@@ -967,20 +1135,17 @@ class AIAnalyticsManager:
                     avg_compliance = sum(compliance_scores) / len(compliance_scores)
                     compliance_factor = (avg_compliance - 50) * 0.3  # Adjust base score by compliance
             
-            # LLM confidence factor
-            llm_factor = 0
-            llm_results = llm_analysis.get("llm_analysis_results", {})
-            if llm_results:
-                confidences = [
-                    result.confidence for result in llm_results.values() 
-                    if hasattr(result, 'confidence')
-                ]
+            # Consensus confidence factor
+            consensus_factor = 0
+            consensus_results = consensus_analysis.get("consensus_results", [])
+            if consensus_results:
+                confidences = [r.get("confidence_score", 0.5) for r in consensus_results]
                 if confidences:
                     avg_confidence = sum(confidences) / len(confidences)
-                    llm_factor = (avg_confidence - 0.5) * 10  # Adjust by LLM confidence
+                    consensus_factor = (avg_confidence - 0.5) * 10  # Adjust by consensus confidence
             
             # Calculate final score
-            enhanced_score = base_score + compliance_factor + llm_factor
+            enhanced_score = base_score + compliance_factor + consensus_factor
             
             return max(0, min(100, int(enhanced_score)))
             
@@ -1006,48 +1171,6 @@ class AIAnalyticsManager:
         
         return controls
     
-    def _summarize_llm_results(self, llm_results: Dict[str, Any]) -> Dict[str, Any]:
-        """Summarize LLM analysis results"""
-        summary = {
-            "models_analyzed": len(llm_results),
-            "total_findings": sum(len(result.findings) for result in llm_results.values() if hasattr(result, 'findings')),
-            "avg_confidence": 0.0,
-            "primary_insights": []
-        }
-        
-        confidences = [result.confidence for result in llm_results.values() if hasattr(result, 'confidence')]
-        if confidences:
-            summary["avg_confidence"] = sum(confidences) / len(confidences)
-        
-        # Extract top insights
-        all_findings = []
-        for result in llm_results.values():
-            if hasattr(result, 'findings'):
-                all_findings.extend(result.findings)
-        
-        summary["primary_insights"] = all_findings[:5]  # Top 5 insights
-        
-        return summary
-    
-    def _extract_llm_confidence_scores(self, llm_results: Dict[str, Any]) -> Dict[str, float]:
-        """Extract confidence scores from LLM results"""
-        confidence_scores = {}
-        
-        for model_name, result in llm_results.items():
-            if hasattr(result, 'confidence'):
-                confidence_scores[model_name] = result.confidence
-        
-        return confidence_scores
-    
-    def _extract_llm_key_findings(self, llm_results: Dict[str, Any]) -> List[str]:
-        """Extract key findings from LLM results"""
-        key_findings = []
-        
-        for result in llm_results.values():
-            if hasattr(result, 'findings'):
-                key_findings.extend(result.findings[:3])  # Top 3 findings per model
-        
-        return key_findings[:10]  # Overall top 10 findings
     
     def _summarize_compliance_status(self, compliance_reports: Dict[str, Any]) -> Dict[str, Any]:
         """Summarize compliance status across frameworks"""
@@ -1090,7 +1213,7 @@ class AIAnalyticsManager:
     def _calculate_assessment_confidence(
         self,
         behavioral_patterns: List[Dict[str, Any]],
-        llm_analysis: Dict[str, Any],
+        consensus_analysis: Dict[str, Any],
         compliance_reports: Dict[str, Any]
     ) -> float:
         """Calculate overall assessment confidence"""
@@ -1102,16 +1225,13 @@ class AIAnalyticsManager:
             avg_behavioral_confidence = sum(pattern_confidences) / len(pattern_confidences)
             confidence_factors.append(avg_behavioral_confidence)
         
-        # LLM analysis confidence
-        llm_results = llm_analysis.get("llm_analysis_results", {})
-        if llm_results:
-            llm_confidences = [
-                result.confidence for result in llm_results.values() 
-                if hasattr(result, 'confidence')
-            ]
-            if llm_confidences:
-                avg_llm_confidence = sum(llm_confidences) / len(llm_confidences)
-                confidence_factors.append(avg_llm_confidence)
+        # Consensus analysis confidence
+        consensus_results = consensus_analysis.get("consensus_results", [])
+        if consensus_results:
+            consensus_confidences = [r.get("confidence_score", 0.5) for r in consensus_results]
+            if consensus_confidences:
+                avg_consensus_confidence = sum(consensus_confidences) / len(consensus_confidences)
+                confidence_factors.append(avg_consensus_confidence)
         
         # Compliance assessment confidence (based on evidence quality)
         if compliance_reports:
