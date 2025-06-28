@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "cloudflare": {
+      "command": "npx",
+      "args": [
+        "@cloudflare/mcp-server-cloudflare"
+      ],
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "your-cloudflare-api-token-here",
+        "CLOUDFLARE_ACCOUNT_ID": "your-cloudflare-account-id-here"
+      }
+    },
+    "neurocipher-automation": {
+      "command": "python",
+      "args": [
+        "/Users/cody/audithound-unified/src/mcp/neurocipher_mcp_server.py"
+      ],
+      "env": {
+        "NEUROCIPHER_CONFIG_PATH": "/Users/cody/audithound-unified/.env",
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}

@@ -1,0 +1,107 @@
+# Private Docker Registry with Authentication and TLS
+version: '3.8'
+
+services:
+  # Private Docker Registry
+  registry:
+    image: registry:2.8
+    container_name: audithound-registry
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: "AuditHound Registry"
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/registry.crt
+      REGISTRY_HTTP_TLS_KEY: /certs/registry.key
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    volumes:
+      - registry-data:/var/lib/registry
+      - ./certs:/certs:ro
+      - ./auth:/auth:ro
+    networks:
+      - registry-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:5000/v2/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Registry UI for management
+  registry-ui:
+    image: joxit/docker-registry-ui:2.5.0
+    container_name: audithound-registry-ui
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      SINGLE_REGISTRY: "true"
+      REGISTRY_TITLE: "AuditHound Private Registry"
+      DELETE_IMAGES: "true"
+      SHOW_CONTENT_DIGEST: "true"
+      NGINX_PROXY_PASS_URL: "https://registry:5000"
+      SHOW_CATALOG_NB_TAGS: "true"
+      CATALOG_MIN_BRANCHES: "1"
+      CATALOG_MAX_BRANCHES: "1"
+      TAGLIST_PAGE_SIZE: "100"
+      REGISTRY_SECURED: "true"
+      CATALOG_ELEMENTS_LIMIT: "1000"
+    depends_on:
+      - registry
+    networks:
+      - registry-network
+
+  # Registry cleaner for maintenance
+  registry-cleaner:
+    image: registry:2.8
+    container_name: audithound-registry-cleaner
+    restart: "no"
+    command: |
+      sh -c "
+        while true; do
+          echo 'Running registry garbage collection...'
+          /bin/registry garbage-collect /etc/docker/registry/config.yml
+          echo 'Garbage collection completed'
+          sleep 86400  # Run daily
+        done
+      "
+    volumes:
+      - registry-data:/var/lib/registry
+      - ./config/registry-config.yml:/etc/docker/registry/config.yml:ro
+    depends_on:
+      - registry
+    networks:
+      - registry-network
+
+  # Vulnerability scanner for images
+  trivy:
+    image: aquasec/trivy:latest
+    container_name: audithound-trivy
+    restart: always
+    volumes:
+      - trivy-cache:/root/.cache/trivy
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: |
+      sh -c "
+        trivy server --listen 0.0.0.0:4954 --cache-dir /root/.cache/trivy
+      "
+    ports:
+      - "4954:4954"
+    networks:
+      - registry-network
+
+volumes:
+  registry-data:
+    driver: local
+  trivy-cache:
+    driver: local
+
+networks:
+  registry-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

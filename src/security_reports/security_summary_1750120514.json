@@ -1,0 +1,42 @@
+{
+  "timestamp": 1750120514.441994,
+  "total_issues": 4,
+  "severity_breakdown": {
+    "critical": 0,
+    "high": 4,
+    "medium": 0,
+    "low": 0
+  },
+  "scan_results": {
+    "bandit": {
+      "successful": false,
+      "issues_found": 0,
+      "duration": 0.7529258728027344,
+      "error": "Bandit scan failed: object of type 'int' has no len()"
+    },
+    "safety": {
+      "successful": true,
+      "issues_found": 0,
+      "duration": 1.6395220756530762,
+      "error": "Failed to parse safety output"
+    },
+    "secrets": {
+      "successful": true,
+      "issues_found": 4,
+      "duration": 0.08346199989318848,
+      "error": null
+    },
+    "config": {
+      "successful": true,
+      "issues_found": 0,
+      "duration": 0.004621982574462891,
+      "error": null
+    }
+  },
+  "tools_available": {
+    "bandit": true,
+    "safety": true,
+    "semgrep": false
+  },
+  "recommendation": "MEDIUM: High-severity issues found. Address soon."
+}

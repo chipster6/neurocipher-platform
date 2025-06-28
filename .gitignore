@@ -1,0 +1,120 @@
+# NeuroCipher .gitignore
+
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.staging
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+neurocipher_env/
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+neurocipher.log
+
+# Database
+*.db
+*.sqlite3
+data/
+pg_data/
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+.dockerignore
+
+# Temporary files
+.tmp/
+temp/
+*.tmp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# API keys and credentials (extra protection)
+*_api_key*
+*_secret*
+credentials/
+keys/
+
+# MCP server logs
+mcp.log
+mcp_*.log
+
+# AI model files (too large for git)
+models/
+*.bin
+*.safetensors
+*.pkl
+
+# Test outputs
+test_results/
+coverage_reports/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# Pytest cache
+.pytest_cache/
+
+# Vector database data
+weaviate_data/
+vector_cache/
+
+# Performance profiling
+*.prof
+
+# Backup files
+*.bak
+*.backup
+
+# Local configuration overrides
+config.local.yaml
+config.local.json

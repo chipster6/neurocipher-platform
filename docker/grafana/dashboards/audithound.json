@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AuditHound Overview",
+    "tags": ["audithound"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Tenants",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "audithound_tenants_total",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "API Requests/sec",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(audithound_http_requests_total[5m])",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Active Findings",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "audithound_findings_active_total",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "System Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "audithound_health_status",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "10s"
+  }
+}

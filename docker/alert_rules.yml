@@ -1,0 +1,213 @@
+# Prometheus alert rules for AuditHound
+
+groups:
+  - name: audithound_alerts
+    rules:
+      # Application health alerts
+      - alert: AuditHoundDown
+        expr: up{job="audithound"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AuditHound is down"
+          description: "AuditHound has been down for more than 1 minute."
+
+      - alert: AuditHoundHealthCheckFailing
+        expr: audithound_health_status != 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AuditHound health check failing"
+          description: "AuditHound health check has been failing for 5 minutes."
+
+      # Performance alerts
+      - alert: HighCPUUsage
+        expr: audithound_cpu_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on AuditHound"
+          description: "CPU usage is above 80% for 10 minutes."
+
+      - alert: HighMemoryUsage
+        expr: audithound_memory_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on AuditHound"
+          description: "Memory usage is above 85% for 5 minutes."
+
+      - alert: CriticalMemoryUsage
+        expr: audithound_memory_usage_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical memory usage on AuditHound"
+          description: "Memory usage is above 95% for 2 minutes."
+
+      # HTTP performance alerts
+      - alert: HighHTTPErrorRate
+        expr: rate(audithound_http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP error rate"
+          description: "HTTP 5xx error rate is above 10% for 5 minutes."
+
+      - alert: SlowHTTPResponses
+        expr: histogram_quantile(0.95, rate(audithound_http_request_duration_seconds_bucket[5m])) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow HTTP responses"
+          description: "95th percentile HTTP response time is above 2 seconds for 10 minutes."
+
+      # Business metrics alerts
+      - alert: NoClientOnboardingActivity
+        expr: increase(audithound_clients_onboarded_total[24h]) == 0
+        for: 24h
+        labels:
+          severity: info
+        annotations:
+          summary: "No client onboarding activity"
+          description: "No new clients have been onboarded in the last 24 hours."
+
+      - alert: HighOnboardingFailureRate
+        expr: rate(audithound_onboarding_steps_completed_total{status="failed"}[1h]) / rate(audithound_onboarding_steps_completed_total[1h]) > 0.2
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High onboarding failure rate"
+          description: "Onboarding failure rate is above 20% for 30 minutes."
+
+      - alert: CriticalSecurityFindingsHigh
+        expr: audithound_findings_active{severity="critical"} > 10
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High number of critical security findings"
+          description: "More than 10 critical security findings are currently active."
+
+      # Security alerts
+      - alert: HighAuthenticationFailures
+        expr: rate(audithound_auth_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is above 10% for 5 minutes."
+
+      - alert: SecurityEventSpike
+        expr: rate(audithound_security_events_total[5m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Security event spike detected"
+          description: "Security events rate is unusually high for 10 minutes."
+
+      # Database alerts
+      - alert: WeaviateDown
+        expr: up{job="weaviate"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Weaviate is down"
+          description: "Weaviate vector database has been down for more than 2 minutes."
+
+      - alert: SlowDatabaseOperations
+        expr: histogram_quantile(0.95, rate(audithound_db_operation_duration_seconds_bucket[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database operations"
+          description: "95th percentile database operation time is above 5 seconds for 10 minutes."
+
+      # Compliance alerts
+      - alert: ComplianceScoreDropped
+        expr: audithound_compliance_score < 80
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Compliance score has dropped"
+          description: "Compliance score is below 80% for 15 minutes."
+
+      - alert: ComplianceCheckFailures
+        expr: rate(audithound_compliance_checks_total{status="failed"}[1h]) > 0.1
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High compliance check failure rate"
+          description: "Compliance check failure rate is above 10% for 30 minutes."
+
+  - name: infrastructure_alerts
+    rules:
+      # System resource alerts
+      - alert: HighDiskUsage
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is above 85% on {{ $labels.instance }}."
+
+      - alert: CriticalDiskUsage
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical disk usage"
+          description: "Disk usage is above 95% on {{ $labels.instance }}."
+
+      - alert: HighSystemLoad
+        expr: node_load1 > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High system load"
+          description: "System load is above 2 for 10 minutes on {{ $labels.instance }}."
+
+      # Container alerts
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container high CPU usage"
+          description: "Container {{ $labels.name }} CPU usage is above 80% for 10 minutes."
+
+      - alert: ContainerHighMemory
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container high memory usage"
+          description: "Container {{ $labels.name }} memory usage is above 85% for 5 minutes."
+
+      - alert: ContainerRestarting
+        expr: rate(container_last_seen[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container restarting"
+          description: "Container {{ $labels.name }} is restarting frequently."

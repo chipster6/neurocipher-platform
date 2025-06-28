@@ -1,0 +1,114 @@
+# AuditHound Configuration File
+# This file contains example configuration for cloud providers and compliance frameworks
+
+# Cloud Provider Configurations
+cloud_providers:
+  gcp:
+    enabled: true
+    project_id: "your-gcp-project-id"
+    credentials_path: "./credentials/gcp-service-account.json"
+    regions:
+      - "us-central1"
+      - "us-east1"
+    
+  azure:
+    enabled: true
+    tenant_id: "your-azure-tenant-id"
+    subscription_id: "your-azure-subscription-id"
+    client_id: "your-azure-client-id"
+    client_secret: "${AZURE_CLIENT_SECRET}"  # Use environment variable
+    regions:
+      - "East US"
+      - "West US 2"
+    
+  aws:
+    enabled: false  # Set to true when ready to configure
+    region: "us-west-2"
+    access_key_id: "${AWS_ACCESS_KEY_ID}"
+    secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+
+# Compliance Framework Settings
+compliance_frameworks:
+  soc2:
+    enabled: true
+    controls:
+      - "CC6.1"  # Logical Access Controls
+      - "CC6.2"  # Authentication and Authorization
+      - "CC6.3"  # System Access Monitoring
+      - "CC7.1"  # Data Classification and Handling
+      - "CC8.1"  # Change Management
+    
+  iso27001:
+    enabled: false
+    controls: []
+    
+  cis:
+    enabled: false
+    controls: []
+
+# Scoring and Thresholds
+scoring:
+  thresholds:
+    compliant: 90      # Score >= 90% = Compliant
+    partial: 70        # Score >= 70% = Partial Compliance
+    # Score < 70% = Non-Compliant
+  
+  weights:
+    cc6_1:  # Logical Access Controls
+      password_complexity: 0.25
+      mfa_enforcement: 0.35
+      access_controls: 0.25
+      session_management: 0.15
+    
+    cc6_2:  # Authentication and Authorization
+      identity_management: 0.30
+      authorization_controls: 0.40
+      token_security: 0.30
+
+# Dashboard Settings
+dashboard:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+  refresh_interval_hours: 6
+
+# Reporting
+reporting:
+  output_directory: "./reports"
+  formats:
+    - "pdf"
+    - "json"
+    - "csv"
+  
+  templates:
+    soc2: "./templates/soc2_report.html"
+    executive: "./templates/executive_summary.html"
+
+# Logging
+logging:
+  level: "INFO"
+  file: "./logs/audithound.log"
+  max_size_mb: 100
+  backup_count: 5
+
+# Database (Optional - for persistent storage)
+database:
+  enabled: false
+  type: "sqlite"  # sqlite, postgresql, mysql
+  connection_string: "sqlite:///./audithound.db"
+
+# Notifications (Optional)
+notifications:
+  enabled: false
+  slack:
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#compliance"
+  
+  email:
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    username: "${EMAIL_USERNAME}"
+    password: "${EMAIL_PASSWORD}"
+    recipients:
+      - "compliance@company.com"
+      - "security@company.com"

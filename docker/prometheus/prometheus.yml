@@ -1,0 +1,35 @@
+# Prometheus configuration for AuditHound monitoring
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  # AuditHound application metrics
+  - job_name: 'audithound'
+    static_configs:
+      - targets: ['audithound-app:8080']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # PostgreSQL metrics (if postgres_exporter is added)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 60s
+
+  # Redis metrics (if redis_exporter is added)  
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 60s
+
+  # NGINX metrics (if nginx_exporter is added)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']
+    scrape_interval: 60s
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

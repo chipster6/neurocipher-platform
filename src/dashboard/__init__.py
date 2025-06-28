@@ -1,0 +1,1 @@
+"""Dashboard package for AuditHound web interface"""

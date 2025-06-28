@@ -1,0 +1,220 @@
+{
+  "index_patterns": ["audithound-*"],
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "index.refresh_interval": "5s",
+    "index.mapping.total_fields.limit": 2000
+  },
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "level": {
+        "type": "keyword"
+      },
+      "message": {
+        "type": "text",
+        "analyzer": "standard"
+      },
+      "logger": {
+        "type": "keyword"
+      },
+      "module": {
+        "type": "keyword"
+      },
+      "category": {
+        "type": "keyword"
+      },
+      "event_type": {
+        "type": "keyword"
+      },
+      "log_source": {
+        "type": "keyword"
+      },
+      "log_type": {
+        "type": "keyword"
+      },
+      "environment": {
+        "type": "keyword"
+      },
+      "service_name": {
+        "type": "keyword"
+      },
+      "service_version": {
+        "type": "keyword"
+      },
+      "request_id": {
+        "type": "keyword"
+      },
+      "client_id": {
+        "type": "keyword"
+      },
+      "user_id": {
+        "type": "keyword"
+      },
+      "session_id": {
+        "type": "keyword"
+      },
+      "ip_address": {
+        "type": "ip"
+      },
+      "user_agent": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "source_file": {
+        "type": "keyword"
+      },
+      "source_function": {
+        "type": "keyword"
+      },
+      "source_line": {
+        "type": "integer"
+      },
+      "duration_ms": {
+        "type": "float"
+      },
+      "status_code": {
+        "type": "integer"
+      },
+      "method": {
+        "type": "keyword"
+      },
+      "path": {
+        "type": "keyword"
+      },
+      "response_size": {
+        "type": "long"
+      },
+      "security_event_type": {
+        "type": "keyword"
+      },
+      "severity": {
+        "type": "keyword"
+      },
+      "finding_id": {
+        "type": "keyword"
+      },
+      "compliance_framework": {
+        "type": "keyword"
+      },
+      "control_id": {
+        "type": "keyword"
+      },
+      "asset_type": {
+        "type": "keyword"
+      },
+      "threat_type": {
+        "type": "keyword"
+      },
+      "exception_type": {
+        "type": "keyword"
+      },
+      "has_exception": {
+        "type": "boolean"
+      },
+      "exception": {
+        "properties": {
+          "type": {
+            "type": "keyword"
+          },
+          "message": {
+            "type": "text"
+          },
+          "traceback": {
+            "type": "text"
+          }
+        }
+      },
+      "context": {
+        "properties": {
+          "request_id": {
+            "type": "keyword"
+          },
+          "client_id": {
+            "type": "keyword"
+          },
+          "user_id": {
+            "type": "keyword"
+          },
+          "session_id": {
+            "type": "keyword"
+          }
+        }
+      },
+      "source": {
+        "properties": {
+          "file": {
+            "type": "keyword"
+          },
+          "function": {
+            "type": "keyword"
+          },
+          "line": {
+            "type": "integer"
+          }
+        }
+      },
+      "data": {
+        "type": "object",
+        "dynamic": true
+      },
+      "geoip": {
+        "properties": {
+          "country_name": {
+            "type": "keyword"
+          },
+          "country_code2": {
+            "type": "keyword"
+          },
+          "region_name": {
+            "type": "keyword"
+          },
+          "city_name": {
+            "type": "keyword"
+          },
+          "latitude": {
+            "type": "float"
+          },
+          "longitude": {
+            "type": "float"
+          },
+          "location": {
+            "type": "geo_point"
+          }
+        }
+      },
+      "ua": {
+        "properties": {
+          "name": {
+            "type": "keyword"
+          },
+          "version": {
+            "type": "keyword"
+          },
+          "os": {
+            "type": "keyword"
+          },
+          "os_version": {
+            "type": "keyword"
+          },
+          "device": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  }
+}

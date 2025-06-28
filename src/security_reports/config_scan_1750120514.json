@@ -1,0 +1,16 @@
+{
+  "scan_type": "configuration_audit",
+  "timestamp": 1750120514.436946,
+  "duration": 0.004621982574462891,
+  "issues": [],
+  "files_scanned": 0,
+  "scan_successful": true,
+  "error_message": null,
+  "summary": {
+    "total_issues": 0,
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  }
+}
