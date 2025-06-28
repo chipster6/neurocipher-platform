@@ -295,9 +295,42 @@ pre-commit install
 pytest
 ```
 
+## 📄 Legal and Business Information
+
+### Customer Service
+- **Support Email**: support@neurocipher.io
+- **Business Hours**: Monday - Friday, 9:00 AM - 6:00 PM EST
+- **Phone**: [Available upon Stripe activation]
+- **Live Chat**: Available at neurocipher.io
+
+### Business Policies
+- **[Terms of Service](TERMS_OF_SERVICE.md)** - Complete terms and conditions
+- **[Privacy Policy](PRIVACY_POLICY.md)** - Data protection and privacy rights
+- **[Refund Policy](REFUND_POLICY.md)** - Returns, refunds, and cancellations
+- **[Export Compliance](EXPORT_COMPLIANCE.md)** - Legal restrictions and compliance
+- **[Promotions Terms](PROMOTIONS_TERMS.md)** - Promotional offers and conditions
+- **[Contact Information](CONTACT_INFO.md)** - Complete contact directory
+
+### Subscription Plans
+- **Free**: 1 scan/month + basic reporting
+- **Professional ($99/month)**: 10 scans + automated remediation
+- **Business ($199/month)**: Unlimited scans + continuous monitoring
+- **Enterprise ($499/month)**: On-premises hardware + white-label
+
+### Refund & Cancellation
+- **30-Day Money-Back Guarantee** on all paid plans
+- **Cancel Anytime** through account dashboard
+- **Pro-rated Refunds** available for annual subscriptions
+- **Hardware Returns** accepted within 30 days
+
+### Export Restrictions
+- Service compliant with US Export Administration Regulations
+- Not available in sanctioned countries (Iran, North Korea, Syria, Crimea)
+- Customer screening against OFAC and BIS lists
+
 ## 📄 License
 
-Proprietary - All rights reserved.
+Proprietary - All rights reserved. See [LICENSE](LICENSE) for details.
 
 ---
 
@@ -305,4 +338,5 @@ Proprietary - All rights reserved.
 
 🌐 Visit us at: [neurocipher.io](https://neurocipher.io)  
 📧 Contact: hello@neurocipher.io  
-🚀 Get Started: [Start Free Trial](https://neurocipher.io/signup)
+🚀 Get Started: [Start Free Trial](https://neurocipher.io/signup)  
+📞 Support: support@neurocipher.io
