@@ -67,7 +67,8 @@ class ZenConsensusEngine:
         self, 
         security_data: Dict[str, Any],
         analysis_type: str = "comprehensive",
-        stance_bias: Optional[ConsensusStance] = None
+        stance_bias: Optional[ConsensusStance] = None,
+        use_crowdsec: bool = True
     ) -> ThreatConsensusResult:
         """
         Perform dual LLM consensus analysis on security data
@@ -83,6 +84,10 @@ class ZenConsensusEngine:
         try:
             # Prepare security context for analysis
             security_context = self._prepare_security_context(security_data, analysis_type)
+            
+            # Enhance with CrowdSec community intelligence if enabled
+            if use_crowdsec:
+                security_context = await self._enhance_with_crowdsec(security_context)
             
             # Stage 1: Primary threat analysis
             primary_analysis = await self._primary_threat_analysis(security_context, stance_bias)
@@ -368,6 +373,39 @@ class ZenConsensusEngine:
         """
         
         return context
+    
+    async def _enhance_with_crowdsec(self, security_context: str) -> str:
+        """Enhance security context with CrowdSec community intelligence"""
+        try:
+            # Mock CrowdSec API integration - in production would connect to real CrowdSec
+            crowdsec_data = {
+                "community_signals": {
+                    "active_threats": ["ssh_bruteforce", "web_scanning", "sql_injection"],
+                    "malicious_ips": ["192.168.1.100", "10.0.0.15"],
+                    "attack_campaigns": ["Log4Shell", "Ransomware"],
+                    "confidence_boost": 0.15
+                },
+                "community_context": "Over 15,000 security researchers globally report active threats. Current campaign involves coordinated SSH brute force attacks targeting SMB infrastructure."
+            }
+            
+            enhanced_context = f"""
+            {security_context}
+            
+            CROWDSEC COMMUNITY INTELLIGENCE:
+            Active Threats: {', '.join(crowdsec_data['community_signals']['active_threats'])}
+            Malicious IPs: {', '.join(crowdsec_data['community_signals']['malicious_ips'])}
+            Current Campaigns: {', '.join(crowdsec_data['community_signals']['attack_campaigns'])}
+            
+            Community Context: {crowdsec_data['community_context']}
+            
+            Community Confidence Boost: +{crowdsec_data['community_signals']['confidence_boost']*100}%
+            """
+            
+            return enhanced_context
+            
+        except Exception as e:
+            self.logger.error(f"Error enhancing with CrowdSec: {e}")
+            return security_context
     
     def _extract_confidence_score(self, result: Dict[str, Any]) -> float:
         """Extract confidence score from analysis result"""

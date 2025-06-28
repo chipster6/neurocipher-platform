@@ -56,6 +56,9 @@ class ThreatCorrelationEngine:
         # MITRE ATT&CK database
         self.mitre_database = self._load_mitre_database()
         
+        # CrowdSec threat intelligence database
+        self.crowdsec_database = self._load_crowdsec_database()
+        
     def correlate_threats(self, scan_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Correlate scan results with threat intelligence
@@ -90,6 +93,9 @@ class ThreatCorrelationEngine:
             # Priority threat assessment
             priority_threats = self._assess_priority_threats(correlations)
             
+            # CrowdSec community threat analysis
+            crowdsec_analysis = self._analyze_crowdsec_threats(correlations)
+            
             correlation_results = {
                 'analysis_timestamp': datetime.now().isoformat(),
                 'total_risks_analyzed': len(risks),
@@ -99,6 +105,7 @@ class ThreatCorrelationEngine:
                 'threat_landscape': threat_landscape,
                 'attack_paths': attack_paths,
                 'priority_threats': priority_threats,
+                'crowdsec_analysis': crowdsec_analysis,
                 'intelligence_freshness': self._assess_intelligence_freshness(),
                 'recommendations': self._generate_correlation_recommendations(correlations)
             }
@@ -900,6 +907,195 @@ class ThreatCorrelationEngine:
                 recommendations.append(f"{technique}: {detection_recommendations[technique]}")
         
         return recommendations
+    
+    def _analyze_crowdsec_threats(self, correlations: List[ThreatCorrelation]) -> Dict[str, Any]:
+        """Analyze threats using CrowdSec community intelligence"""
+        try:
+            crowdsec_analysis = {
+                "community_reports": 0,
+                "active_attacks": [],
+                "ip_reputation": {},
+                "behavior_patterns": [],
+                "confidence_boost": 0.0
+            }
+            
+            # Analyze each correlation against CrowdSec data
+            for correlation in correlations:
+                # Check for known malicious IPs
+                ip_matches = self._find_crowdsec_ip_matches(correlation)
+                if ip_matches:
+                    crowdsec_analysis["ip_reputation"].update(ip_matches)
+                
+                # Check for known attack patterns
+                pattern_matches = self._find_crowdsec_pattern_matches(correlation)
+                if pattern_matches:
+                    crowdsec_analysis["behavior_patterns"].extend(pattern_matches)
+                
+                # Check for active attack campaigns
+                campaign_matches = self._find_crowdsec_campaign_matches(correlation)
+                if campaign_matches:
+                    crowdsec_analysis["active_attacks"].extend(campaign_matches)
+            
+            # Calculate community confidence boost
+            community_signals = (
+                len(crowdsec_analysis["ip_reputation"]) +
+                len(crowdsec_analysis["behavior_patterns"]) +
+                len(crowdsec_analysis["active_attacks"])
+            )
+            
+            crowdsec_analysis["community_reports"] = community_signals
+            crowdsec_analysis["confidence_boost"] = min(0.3, community_signals * 0.1)  # Up to 30% boost
+            
+            return crowdsec_analysis
+            
+        except Exception as e:
+            self.logger.error(f"CrowdSec analysis failed: {e}")
+            return {"error": str(e), "community_reports": 0}
+    
+    def _find_crowdsec_ip_matches(self, correlation: ThreatCorrelation) -> Dict[str, Any]:
+        """Find IP reputation matches in CrowdSec database"""
+        ip_matches = {}
+        
+        # Extract IP addresses from correlation data
+        risk_description = correlation.risk_title.lower()
+        
+        # Check against CrowdSec IP reputation database
+        for ip_entry in self.crowdsec_database.get("malicious_ips", []):
+            ip_address = ip_entry.get("ip", "")
+            if ip_address in risk_description:
+                ip_matches[ip_address] = {
+                    "reputation_score": ip_entry.get("reputation_score", 0),
+                    "attack_types": ip_entry.get("attack_types", []),
+                    "last_seen": ip_entry.get("last_seen", ""),
+                    "community_reports": ip_entry.get("community_reports", 0)
+                }
+        
+        return ip_matches
+    
+    def _find_crowdsec_pattern_matches(self, correlation: ThreatCorrelation) -> List[Dict[str, Any]]:
+        """Find behavior pattern matches in CrowdSec database"""
+        pattern_matches = []
+        
+        risk_description = correlation.risk_title.lower()
+        
+        # Check against CrowdSec behavior patterns
+        for pattern in self.crowdsec_database.get("behavior_patterns", []):
+            pattern_signature = pattern.get("signature", "").lower()
+            if pattern_signature in risk_description:
+                pattern_matches.append({
+                    "pattern_name": pattern.get("name", ""),
+                    "attack_type": pattern.get("attack_type", ""),
+                    "severity": pattern.get("severity", "medium"),
+                    "community_confidence": pattern.get("community_confidence", 0.5),
+                    "mitigation": pattern.get("mitigation", "")
+                })
+        
+        return pattern_matches
+    
+    def _find_crowdsec_campaign_matches(self, correlation: ThreatCorrelation) -> List[Dict[str, Any]]:
+        """Find active attack campaign matches in CrowdSec database"""
+        campaign_matches = []
+        
+        # Check MITRE techniques against active campaigns
+        for technique in correlation.mitre_tactics:
+            technique_id = technique.get("technique_id", "")
+            
+            for campaign in self.crowdsec_database.get("active_campaigns", []):
+                if technique_id in campaign.get("mitre_techniques", []):
+                    campaign_matches.append({
+                        "campaign_name": campaign.get("name", ""),
+                        "threat_actor": campaign.get("threat_actor", "unknown"),
+                        "campaign_start": campaign.get("start_date", ""),
+                        "target_sectors": campaign.get("target_sectors", []),
+                        "attack_vectors": campaign.get("attack_vectors", []),
+                        "community_tracking": campaign.get("community_tracking", False)
+                    })
+        
+        return campaign_matches
+    
+    def _load_crowdsec_database(self) -> Dict[str, Any]:
+        """Load CrowdSec community threat intelligence database"""
+        # Sample CrowdSec database with community intelligence
+        return {
+            "malicious_ips": [
+                {
+                    "ip": "192.168.1.100",
+                    "reputation_score": 95,
+                    "attack_types": ["brute_force", "ssh_scanner"],
+                    "last_seen": "2024-06-28T10:30:00Z",
+                    "community_reports": 847,
+                    "geographic_origin": "Unknown",
+                    "first_seen": "2024-06-20T08:15:00Z"
+                },
+                {
+                    "ip": "10.0.0.15",
+                    "reputation_score": 88,
+                    "attack_types": ["sql_injection", "web_scanner"],
+                    "last_seen": "2024-06-28T09:45:00Z",
+                    "community_reports": 523,
+                    "geographic_origin": "Multiple",
+                    "first_seen": "2024-06-25T14:22:00Z"
+                }
+            ],
+            "behavior_patterns": [
+                {
+                    "name": "SSH Brute Force Campaign",
+                    "signature": "multiple failed ssh login attempts",
+                    "attack_type": "credential_access",
+                    "severity": "high",
+                    "community_confidence": 0.92,
+                    "mitigation": "Implement fail2ban and key-based authentication",
+                    "indicators": ["rapid connection attempts", "common usernames", "distributed sources"]
+                },
+                {
+                    "name": "Web Scanner Reconnaissance", 
+                    "signature": "automated vulnerability scanning",
+                    "attack_type": "reconnaissance",
+                    "severity": "medium",
+                    "community_confidence": 0.78,
+                    "mitigation": "Deploy web application firewall and rate limiting",
+                    "indicators": ["systematic path enumeration", "common exploit attempts", "user-agent patterns"]
+                },
+                {
+                    "name": "SQL Injection Probing",
+                    "signature": "sql injection patterns in requests",
+                    "attack_type": "initial_access",
+                    "severity": "critical",
+                    "community_confidence": 0.95,
+                    "mitigation": "Sanitize inputs and use parameterized queries",
+                    "indicators": ["union select statements", "comment injection", "time delays"]
+                }
+            ],
+            "active_campaigns": [
+                {
+                    "name": "Log4Shell Exploitation Wave",
+                    "threat_actor": "Multiple APT Groups",
+                    "start_date": "2024-06-15",
+                    "target_sectors": ["technology", "finance", "healthcare"],
+                    "attack_vectors": ["web applications", "remote services"],
+                    "mitre_techniques": ["T1190", "T1059.007"],
+                    "community_tracking": True,
+                    "indicators": ["jndi lookups", "log4j patterns", "remote class loading"]
+                },
+                {
+                    "name": "Ransomware Infrastructure Buildup",
+                    "threat_actor": "Cybercriminal Groups",
+                    "start_date": "2024-06-20",
+                    "target_sectors": ["small_business", "manufacturing", "retail"],
+                    "attack_vectors": ["phishing", "rdp_compromise", "supply_chain"],
+                    "mitre_techniques": ["T1566", "T1021.001", "T1195"],
+                    "community_tracking": True,
+                    "indicators": ["suspicious rdp traffic", "lateral movement", "data exfiltration"]
+                }
+            ],
+            "community_stats": {
+                "total_contributors": 15420,
+                "daily_reports": 8932,
+                "global_coverage": "95% of internet",
+                "threat_feeds": 47,
+                "last_updated": "2024-06-28T10:30:00Z"
+            }
+        }
 
 
 # Global threat correlation engine
