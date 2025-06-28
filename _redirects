@@ -1,0 +1,9 @@
+/terms              /TERMS_OF_SERVICE.html           200
+/privacy            /PRIVACY_POLICY.html             200
+/refund             /REFUND_POLICY.html              200
+/compliance         /EXPORT_COMPLIANCE.html          200
+/contact            /CONTACT_INFO.html               200
+/promotions         /PROMOTIONS_TERMS.html           200
+/app                https://app.neurocipher.io       302
+/dashboard          https://app.neurocipher.io       302
+/api/*              https://api.neurocipher.io/:splat 200
