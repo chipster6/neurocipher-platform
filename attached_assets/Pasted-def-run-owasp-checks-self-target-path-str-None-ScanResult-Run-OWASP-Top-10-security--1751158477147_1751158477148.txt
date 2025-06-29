@@ -1,0 +1,68 @@
+def run_owasp_checks(self, target_path: str = None) -> ScanResult:
+    """Run OWASP Top 10 security check scan"""
+    start_time = time.time()
+    target = Path(target_path) if target_path else self.project_root
+
+    result = ScanResult(
+        scan_type=ScanType.STATIC_ANALYSIS,
+        timestamp=start_time,
+        duration=0
+    )
+
+    # Example checks for OWASP Top 10 vulnerabilities
+    try:
+        for py_file in target.rglob("*.py"):
+            if self._should_skip_file(py_file):
+                continue
+
+            with open(py_file, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+
+            # Injection Check
+            if "exec(" in content or "eval(" in content:
+                issue = SecurityIssue(
+                    scan_type=ScanType.STATIC_ANALYSIS,
+                    severity=SeverityLevel.HIGH,
+                    title="Potential Injection Vulnerability Detected",
+                    description="Usage of exec() or eval() can lead to code execution vulnerabilities.",
+                    file_path=str(py_file.relative_to(self.project_root)),
+                    rule_id="OWASP_A1"
+                )
+                result.issues.append(issue)
+
+            # Broken Authentication Check
+            if "password" in content.lower() and "def reset_password" in content:
+                issue = SecurityIssue(
+                    scan_type=ScanType.STATIC_ANALYSIS,
+                    severity=SeverityLevel.MEDIUM,
+                    title="Potential Broken Authentication Detected",
+                    description="Authentication mechanism may be vulnerable to password reset attacks.",
+                    file_path=str(py_file.relative_to(self.project_root)),
+                    rule_id="OWASP_A2"
+                )
+                result.issues.append(issue)
+
+            # Sensitive Data Exposure Check
+            if "open('data.txt'" in content or "getcookie" in content:
+                issue = SecurityIssue(
+                    scan_type=ScanType.STATIC_ANALYSIS,
+                    severity=SeverityLevel.CRITICAL,
+                    title="Sensitive Data Exposure Detected",
+                    description="Sensitive data may not be adequately protected.",
+                    file_path=str(py_file.relative_to(self.project_root)),
+                    rule_id="OWASP_A3"
+                )
+                result.issues.append(issue)
+
+            # Add similar checks for the other vulnerabilities...
+
+        result.files_scanned += 1
+        
+        result.scan_successful = True
+        
+    except Exception as e:
+        result.scan_successful = False
+        result.error_message = f"OWASP Top 10 scan failed: {e}"
+
+    result.duration = time.time() - start_time
+    return result

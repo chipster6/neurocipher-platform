@@ -73,3 +73,6 @@ structlog>=23.1.0
 # Security
 cryptography>=41.0.0
 passlib[bcrypt]>=1.7.4
+aiohttp
+prowler
+psutil
