@@ -545,6 +545,10 @@ class SecurityScanner:
         logger.info("Running configuration audit...")
         results["config"] = self.run_configuration_audit()
         
+        # Run OWASP Top 10 checks
+        logger.info("Running OWASP Top 10 checks...")
+        results["owasp"] = self.run_owasp_checks(target_path)
+        
         # Save results
         self._save_scan_results(results)
         
@@ -608,6 +612,399 @@ class SecurityScanner:
             "recommendation": self._get_overall_recommendation(total_critical, total_high)
         }
     
+    def run_owasp_checks(self, target_path: str = None) -> ScanResult:
+        """Run OWASP Top 10 security check scan"""
+        start_time = time.time()
+        target = Path(target_path) if target_path else self.project_root
+
+        result = ScanResult(
+            scan_type=ScanType.STATIC_ANALYSIS,
+            timestamp=start_time,
+            duration=0
+        )
+
+        try:
+            import re
+            
+            for py_file in target.rglob("*.py"):
+                if self._should_skip_file(py_file):
+                    continue
+
+                try:
+                    with open(py_file, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                        lines = content.split('\n')
+
+                    # A01:2021 – Broken Access Control
+                    self._check_broken_access_control(content, lines, py_file, result)
+                    
+                    # A02:2021 – Cryptographic Failures
+                    self._check_cryptographic_failures(content, lines, py_file, result)
+                    
+                    # A03:2021 – Injection
+                    self._check_injection_vulnerabilities(content, lines, py_file, result)
+                    
+                    # A04:2021 – Insecure Design
+                    self._check_insecure_design(content, lines, py_file, result)
+                    
+                    # A05:2021 – Security Misconfiguration
+                    self._check_security_misconfiguration(content, lines, py_file, result)
+                    
+                    # A06:2021 – Vulnerable and Outdated Components
+                    self._check_vulnerable_components(content, lines, py_file, result)
+                    
+                    # A07:2021 – Identification and Authentication Failures
+                    self._check_auth_failures(content, lines, py_file, result)
+                    
+                    # A08:2021 – Software and Data Integrity Failures
+                    self._check_integrity_failures(content, lines, py_file, result)
+                    
+                    # A09:2021 – Security Logging and Monitoring Failures
+                    self._check_logging_monitoring_failures(content, lines, py_file, result)
+                    
+                    # A10:2021 – Server-Side Request Forgery (SSRF)
+                    self._check_ssrf_vulnerabilities(content, lines, py_file, result)
+
+                    result.files_scanned += 1
+
+                except Exception as e:
+                    logger.warning(f"Failed to scan {py_file}: {e}")
+
+            result.scan_successful = True
+
+        except Exception as e:
+            result.scan_successful = False
+            result.error_message = f"OWASP Top 10 scan failed: {e}"
+
+        result.duration = time.time() - start_time
+        return result
+
+    def _check_broken_access_control(self, content: str, lines: list, py_file: Path, result: ScanResult):
+        """Check for A01:2021 – Broken Access Control vulnerabilities"""
+        import re
+        
+        patterns = [
+            (r"if\s+user\.is_admin\s*==\s*False", "Negative admin check may be bypassable"),
+            (r"@admin_required\s*\n\s*def\s+\w+.*?pass", "Empty admin-required function"),
+            (r"session\[['\"]user_id['\"]\]\s*=\s*request\.", "Direct user ID assignment from request"),
+            (r"\.filter\(.*?user_id\s*=\s*request\.", "Direct user ID filter from request"),
+            (r"if\s+.*?bypass.*?admin", "Potential admin bypass logic"),
+            (r"@login_required\s*\n\s*def\s+\w+.*?\n\s*pass", "Empty login-required function")
+        ]
+        
+        for line_num, line in enumerate(lines, 1):
+            for pattern, description in patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    issue = SecurityIssue(
+                        scan_type=ScanType.STATIC_ANALYSIS,
+                        severity=SeverityLevel.HIGH,
+                        title="A01: Broken Access Control",
+                        description=f"Potential access control vulnerability: {description}",
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        line_number=line_num,
+                        rule_id="OWASP_A01",
+                        cwe_id="CWE-284",
+                        recommendation="Implement proper access control checks, use principle of least privilege, and validate user permissions server-side"
+                    )
+                    result.issues.append(issue)
+
+    def _check_cryptographic_failures(self, content: str, lines: list, py_file: Path, result: ScanResult):
+        """Check for A02:2021 – Cryptographic Failures"""
+        import re
+        
+        patterns = [
+            (r"hashlib\.md5\(", "MD5 is cryptographically broken"),
+            (r"hashlib\.sha1\(", "SHA1 is cryptographically weak"),
+            (r"password\s*=\s*['\"][^'\"]*['\"]", "Hardcoded password detected"),
+            (r"secret_key\s*=\s*['\"][^'\"]*['\"]", "Hardcoded secret key"),
+            (r"api_key\s*=\s*['\"][^'\"]*['\"]", "Hardcoded API key"),
+            (r"ssl_verify\s*=\s*False", "SSL verification disabled"),
+            (r"verify\s*=\s*False", "Certificate verification disabled"),
+            (r"Random\(\)", "Weak random number generator"),
+            (r"\.encode\(\)", "Data encoding without encryption")
+        ]
+        
+        for line_num, line in enumerate(lines, 1):
+            for pattern, description in patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    severity = SeverityLevel.CRITICAL if "hardcoded" in description.lower() else SeverityLevel.HIGH
+                    issue = SecurityIssue(
+                        scan_type=ScanType.STATIC_ANALYSIS,
+                        severity=severity,
+                        title="A02: Cryptographic Failures",
+                        description=f"Cryptographic vulnerability: {description}",
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        line_number=line_num,
+                        rule_id="OWASP_A02",
+                        cwe_id="CWE-327",
+                        recommendation="Use strong cryptographic algorithms (SHA-256+), store secrets securely, enable SSL/TLS verification"
+                    )
+                    result.issues.append(issue)
+
+    def _check_injection_vulnerabilities(self, content: str, lines: list, py_file: Path, result: ScanResult):
+        """Check for A03:2021 – Injection vulnerabilities"""
+        import re
+        
+        patterns = [
+            (r"exec\s*\(", "Code injection via exec()"),
+            (r"eval\s*\(", "Code injection via eval()"),
+            (r"\.execute\s*\(\s*['\"].*?%.*?['\"]", "SQL injection via string formatting"),
+            (r"\.execute\s*\(\s*f['\"]", "SQL injection via f-string"),
+            (r"subprocess\.call\(.*?shell\s*=\s*True", "Command injection via shell=True"),
+            (r"os\.system\(", "Command injection via os.system"),
+            (r"os\.popen\(", "Command injection via os.popen"),
+            (r"\.format\(.*?\)", "Potential injection via string formatting"),
+            (r"pickle\.loads\(", "Deserialization vulnerability"),
+            (r"yaml\.load\(", "YAML injection vulnerability")
+        ]
+        
+        for line_num, line in enumerate(lines, 1):
+            for pattern, description in patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    issue = SecurityIssue(
+                        scan_type=ScanType.STATIC_ANALYSIS,
+                        severity=SeverityLevel.CRITICAL,
+                        title="A03: Injection",
+                        description=f"Injection vulnerability: {description}",
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        line_number=line_num,
+                        rule_id="OWASP_A03",
+                        cwe_id="CWE-79",
+                        recommendation="Use parameterized queries, input validation, and avoid dynamic code execution"
+                    )
+                    result.issues.append(issue)
+
+    def _check_insecure_design(self, content: str, lines: list, py_file: Path, result: ScanResult):
+        """Check for A04:2021 – Insecure Design"""
+        import re
+        
+        patterns = [
+            (r"def\s+\w*password\w*\(.*?\):\s*pass", "Empty password function"),
+            (r"def\s+\w*auth\w*\(.*?\):\s*pass", "Empty authentication function"),
+            (r"def\s+\w*security\w*\(.*?\):\s*pass", "Empty security function"),
+            (r"TODO.*?security", "Security TODO comments"),
+            (r"FIXME.*?security", "Security FIXME comments"),
+            (r"class\s+.*?Auth.*?:\s*pass", "Empty authentication class"),
+            (r"if\s+True:", "Hardcoded True condition"),
+            (r"return\s+True\s*#.*?bypass", "Bypass logic detected")
+        ]
+        
+        for line_num, line in enumerate(lines, 1):
+            for pattern, description in patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    issue = SecurityIssue(
+                        scan_type=ScanType.STATIC_ANALYSIS,
+                        severity=SeverityLevel.MEDIUM,
+                        title="A04: Insecure Design",
+                        description=f"Insecure design pattern: {description}",
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        line_number=line_num,
+                        rule_id="OWASP_A04",
+                        cwe_id="CWE-657",
+                        recommendation="Implement secure design patterns, threat modeling, and security requirements"
+                    )
+                    result.issues.append(issue)
+
+    def _check_security_misconfiguration(self, content: str, lines: list, py_file: Path, result: ScanResult):
+        """Check for A05:2021 – Security Misconfiguration"""
+        import re
+        
+        patterns = [
+            (r"DEBUG\s*=\s*True", "Debug mode enabled"),
+            (r"debug\s*=\s*True", "Debug mode enabled"),
+            (r"ALLOWED_HOSTS\s*=\s*\[\s*\*\s*\]", "Wildcard in allowed hosts"),
+            (r"SECRET_KEY\s*=\s*['\"][^'\"]*['\"]", "Hardcoded secret key"),
+            (r"CORS_ALLOW_ALL_ORIGINS\s*=\s*True", "CORS allows all origins"),
+            (r"SECURE_SSL_REDIRECT\s*=\s*False", "SSL redirect disabled"),
+            (r"SESSION_COOKIE_SECURE\s*=\s*False", "Insecure session cookies"),
+            (r"CSRF_COOKIE_SECURE\s*=\s*False", "Insecure CSRF cookies"),
+            (r"app\.run\(.*?debug\s*=\s*True", "Flask debug mode"),
+            (r"app\.config\[.*?DEBUG.*?\]\s*=\s*True", "Debug configuration")
+        ]
+        
+        for line_num, line in enumerate(lines, 1):
+            for pattern, description in patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    issue = SecurityIssue(
+                        scan_type=ScanType.STATIC_ANALYSIS,
+                        severity=SeverityLevel.HIGH,
+                        title="A05: Security Misconfiguration",
+                        description=f"Security misconfiguration: {description}",
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        line_number=line_num,
+                        rule_id="OWASP_A05",
+                        cwe_id="CWE-16",
+                        recommendation="Review security configurations, disable debug mode in production, use environment variables"
+                    )
+                    result.issues.append(issue)
+
+    def _check_vulnerable_components(self, content: str, lines: list, py_file: Path, result: ScanResult):
+        """Check for A06:2021 – Vulnerable and Outdated Components"""
+        import re
+        
+        patterns = [
+            (r"import\s+pickle", "Pickle module can be unsafe"),
+            (r"import\s+yaml", "YAML module may be vulnerable"),
+            (r"from\s+yaml\s+import\s+load", "Unsafe YAML loading"),
+            (r"requests\.get\(.*?verify\s*=\s*False", "Insecure requests"),
+            (r"urllib\.request\.urlopen", "Potentially unsafe URL opening"),
+            (r"__import__\(", "Dynamic imports can be dangerous"),
+            (r"importlib\.import_module", "Dynamic module imports")
+        ]
+        
+        for line_num, line in enumerate(lines, 1):
+            for pattern, description in patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    issue = SecurityIssue(
+                        scan_type=ScanType.STATIC_ANALYSIS,
+                        severity=SeverityLevel.MEDIUM,
+                        title="A06: Vulnerable and Outdated Components",
+                        description=f"Potentially vulnerable component usage: {description}",
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        line_number=line_num,
+                        rule_id="OWASP_A06",
+                        cwe_id="CWE-1104",
+                        recommendation="Keep components updated, use safe alternatives, monitor for vulnerabilities"
+                    )
+                    result.issues.append(issue)
+
+    def _check_auth_failures(self, content: str, lines: list, py_file: Path, result: ScanResult):
+        """Check for A07:2021 – Identification and Authentication Failures"""
+        import re
+        
+        patterns = [
+            (r"session\[.*?\]\s*=\s*.*?without.*?validation", "Session assignment without validation"),
+            (r"password\s*==\s*['\"][^'\"]*['\"]", "Hardcoded password comparison"),
+            (r"if\s+password\s*:", "Weak password validation"),
+            (r"session\.permanent\s*=\s*True", "Permanent sessions"),
+            (r"remember_me\s*=\s*True", "Remember me without proper controls"),
+            (r"login_user\(.*?remember\s*=\s*True", "Auto-remember login"),
+            (r"password_reset.*?without.*?validation", "Password reset without validation"),
+            (r"session_id\s*=\s*.*?predictable", "Predictable session IDs")
+        ]
+        
+        for line_num, line in enumerate(lines, 1):
+            for pattern, description in patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    issue = SecurityIssue(
+                        scan_type=ScanType.STATIC_ANALYSIS,
+                        severity=SeverityLevel.HIGH,
+                        title="A07: Identification and Authentication Failures",
+                        description=f"Authentication vulnerability: {description}",
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        line_number=line_num,
+                        rule_id="OWASP_A07",
+                        cwe_id="CWE-287",
+                        recommendation="Implement MFA, secure session management, and strong authentication controls"
+                    )
+                    result.issues.append(issue)
+
+    def _check_integrity_failures(self, content: str, lines: list, py_file: Path, result: ScanResult):
+        """Check for A08:2021 – Software and Data Integrity Failures"""
+        import re
+        
+        patterns = [
+            (r"pickle\.loads\(.*?untrusted", "Unsafe deserialization"),
+            (r"json\.loads\(.*?request\.", "JSON deserialization from request"),
+            (r"yaml\.load\(.*?Loader\s*=\s*yaml\.Loader", "Unsafe YAML loading"),
+            (r"exec\(.*?request\.", "Code execution from request"),
+            (r"eval\(.*?request\.", "Eval from request data"),
+            (r"__import__\(.*?request\.", "Dynamic import from request"),
+            (r"subprocess\.*?input.*?request\.", "Subprocess with request input"),
+            (r"open\(.*?request\.", "File operations with request data")
+        ]
+        
+        for line_num, line in enumerate(lines, 1):
+            for pattern, description in patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    issue = SecurityIssue(
+                        scan_type=ScanType.STATIC_ANALYSIS,
+                        severity=SeverityLevel.CRITICAL,
+                        title="A08: Software and Data Integrity Failures",
+                        description=f"Integrity failure: {description}",
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        line_number=line_num,
+                        rule_id="OWASP_A08",
+                        cwe_id="CWE-502",
+                        recommendation="Validate data integrity, use digital signatures, avoid unsafe deserialization"
+                    )
+                    result.issues.append(issue)
+
+    def _check_logging_monitoring_failures(self, content: str, lines: list, py_file: Path, result: ScanResult):
+        """Check for A09:2021 – Security Logging and Monitoring Failures"""
+        import re
+        
+        # Check for missing logging in security-sensitive functions
+        security_functions = re.findall(r'def\s+(.*?(?:login|auth|password|admin|security|access|permission).*?)\(', content, re.IGNORECASE)
+        
+        for func_name in security_functions:
+            if not re.search(rf'def\s+{re.escape(func_name)}.*?\n.*?log', content, re.IGNORECASE | re.DOTALL):
+                issue = SecurityIssue(
+                    scan_type=ScanType.STATIC_ANALYSIS,
+                    severity=SeverityLevel.MEDIUM,
+                    title="A09: Security Logging and Monitoring Failures",
+                    description=f"Security function '{func_name}' lacks logging",
+                    file_path=str(py_file.relative_to(self.project_root)),
+                    rule_id="OWASP_A09",
+                    cwe_id="CWE-778",
+                    recommendation="Add comprehensive logging for security events, implement monitoring and alerting"
+                )
+                result.issues.append(issue)
+
+        patterns = [
+            (r"except.*?:\s*pass", "Silent exception handling"),
+            (r"try:.*?except.*?pass", "Empty exception blocks"),
+            (r"login.*?success.*?without.*?log", "Login success without logging"),
+            (r"login.*?fail.*?without.*?log", "Login failure without logging")
+        ]
+        
+        for line_num, line in enumerate(lines, 1):
+            for pattern, description in patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    issue = SecurityIssue(
+                        scan_type=ScanType.STATIC_ANALYSIS,
+                        severity=SeverityLevel.LOW,
+                        title="A09: Security Logging and Monitoring Failures",
+                        description=f"Logging issue: {description}",
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        line_number=line_num,
+                        rule_id="OWASP_A09",
+                        cwe_id="CWE-778",
+                        recommendation="Implement comprehensive logging and monitoring for security events"
+                    )
+                    result.issues.append(issue)
+
+    def _check_ssrf_vulnerabilities(self, content: str, lines: list, py_file: Path, result: ScanResult):
+        """Check for A10:2021 – Server-Side Request Forgery (SSRF)"""
+        import re
+        
+        patterns = [
+            (r"requests\.get\(.*?request\.", "HTTP request with user input"),
+            (r"requests\.post\(.*?request\.", "HTTP POST with user input"),
+            (r"urllib\.request\.urlopen\(.*?request\.", "URL open with user input"),
+            (r"httplib.*?request\.", "HTTP library with user input"),
+            (r"fetch\(.*?request\.", "Fetch with user input"),
+            (r"wget.*?request\.", "Wget with user input"),
+            (r"curl.*?request\.", "Curl with user input"),
+            (r"\.get\(.*?url.*?request\.", "GET request with user URL")
+        ]
+        
+        for line_num, line in enumerate(lines, 1):
+            for pattern, description in patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    issue = SecurityIssue(
+                        scan_type=ScanType.STATIC_ANALYSIS,
+                        severity=SeverityLevel.HIGH,
+                        title="A10: Server-Side Request Forgery (SSRF)",
+                        description=f"Potential SSRF vulnerability: {description}",
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        line_number=line_num,
+                        rule_id="OWASP_A10",
+                        cwe_id="CWE-918",
+                        recommendation="Validate and sanitize URLs, use allowlists, implement network segmentation"
+                    )
+                    result.issues.append(issue)
+
     def _get_overall_recommendation(self, critical_count: int, high_count: int) -> str:
         """Get overall security recommendation"""
         if critical_count > 0:
@@ -631,7 +1028,7 @@ def main():
     
     parser = argparse.ArgumentParser(description="AuditHound Security Scanner")
     parser.add_argument("--target", "-t", default=".", help="Target directory to scan")
-    parser.add_argument("--scan-type", "-s", choices=["all", "bandit", "safety", "secrets", "config"],
+    parser.add_argument("--scan-type", "-s", choices=["all", "bandit", "safety", "secrets", "config", "owasp"],
                        default="all", help="Type of scan to run")
     parser.add_argument("--output", "-o", help="Output file for results")
     parser.add_argument("--format", "-f", choices=["json", "text"], default="text",
@@ -651,6 +1048,8 @@ def main():
         results = {"secrets": scanner.run_secrets_detection()}
     elif args.scan_type == "config":
         results = {"config": scanner.run_configuration_audit()}
+    elif args.scan_type == "owasp":
+        results = {"owasp": scanner.run_owasp_checks()}
     
     # Output results
     if args.format == "json":
