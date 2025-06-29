@@ -7,3 +7,15 @@ packages = ["cargo", "freetype", "glibcLocales", "libiconv", "libxcrypt", "libya
 
 [deployment]
 run = ["sh", "-c", "node index.js"]
+
+[workflows]
+runButton = "Run AuditHound"
+
+[[workflows.workflow]]
+name = "Run AuditHound"
+author = 43133832
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python src/main.py"
